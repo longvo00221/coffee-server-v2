@@ -1,6 +1,8 @@
 import { prop, plugin, Ref } from '@typegoose/typegoose';
-import { User } from './user.schema';
-import { Product } from '../product/schema/product.schema';
+import { User } from '../../user/schemas/user.schema';
+import { Product } from '../../product/schema/product.schema';
+import mongoose from 'mongoose';
+import { SchemaFactory } from '@nestjs/mongoose';
 
 export class OrderItem {
   @prop({ required: true })
@@ -27,7 +29,7 @@ export class OrderItem {
   @prop({ required: true })
   price: number;
 
-  @prop({ ref: 'Product', required: true })
+  @prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true })
   product: Ref<Product>;
 }
 
@@ -70,7 +72,7 @@ export class PaymentResult {
 
 @plugin(require('mongoose-unique-validator'))
 export class Order {
-  @prop({ ref: 'User', required: true })
+  @prop({type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true })
   user: Ref<User>;
 
   @prop()
@@ -109,3 +111,6 @@ export class Order {
   @prop()
   deliveredAt: Date;
 }
+
+
+export const OrderSchema = SchemaFactory.createForClass(Order)

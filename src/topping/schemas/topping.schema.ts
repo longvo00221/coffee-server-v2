@@ -1,3 +1,4 @@
+import { SchemaFactory } from '@nestjs/mongoose';
 import { prop, pre, plugin } from '@typegoose/typegoose';
 
 @plugin(require('mongoose-unique-validator'))
@@ -26,3 +27,5 @@ export class Topping {
     @prop({ required: true, default: 0 })
     countInStock: number;
 }
+
+export  const ToppingSchema = SchemaFactory.createForClass(Topping);

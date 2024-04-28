@@ -1,37 +1,132 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Delete, Res, Query, Param, HttpException, Put, HttpStatus, Req } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { ResponseHandler } from 'src/handler/response.handler';
+import { ResponseHandler } from 'src/response';
+import { productId } from './interface/getProduct.interface';
+import { Product } from './schema/product.schema';
+import { Topping } from 'src/topping/schemas/topping.schema';
+import { Private } from 'src/common/decorators/private.decorator';
 
 @Controller('product')
 export class ProductController {
-  constructor(private readonly productService: ProductService, private readonly responseHandler: ResponseHandler) { }
+  constructor(private readonly productService: ProductService, private readonly response: ResponseHandler) { }
+  @Get('/')
+  async findAll(@Res() res: Response, @Query('keyword') keyword?: string): Promise<Response> {
+    try {
+      const key = keyword
+        ? {
+          $or: [
+            {
+              name: {
+                $regex: keyword,
+                $options: "i",
+              },
+            },
+            {
+              normalizedName: {
+                $regex: keyword,
+                $options: "i",
+              },
+            },
+            {
+              englishName: {
+                $regex: keyword,
+                $options: "i",
+              },
+            },
+          ],
+        }
+        : {};
+      const allProduct: Product[] = await this.productService.getListProduct(key);
 
-  @Post()
-  create(@Body() createProductDto: CreateProductDto) {
-    return this.productService.create(createProductDto);
+      return this.response.responseWithData(res, 200, allProduct)
+    } catch (error) {
+      if (error instanceof HttpException) {
+        this.response.error(res, error.getStatus(), error.message);
+      } else {
+        this.response.error(res, HttpStatus.INTERNAL_SERVER_ERROR, error.message);
+      }
+    }
+
   }
+  @Get('/topping')
+  async findTopping(@Res() res: Response, @Query('keyword') keyword?: string): Promise<Response> {
+    try {
+      const key = keyword ? {
+        name: {
+          $regex: keyword,
+          $options: 'i'
+        }
+      } : {}
+      const toppings: Topping[] = await this.productService.getToppings(key);
 
-  @Get('/all-product')
-  async findAll(@Res() res: Response): Promise<Response> {
-    const allProduct = await this.productService.findAll();
-
-    return this.responseHandler.ok(res, allProduct)
+      return this.response.responseWithData(res, 200, toppings)
+    } catch (error) {
+      if (error instanceof HttpException) {
+        this.response.error(res, error.getStatus(), error.message);
+      } else {
+        this.response.error(res, HttpStatus.INTERNAL_SERVER_ERROR, error.message);
+      }
+    }
   }
-
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.productService.findOne(+id);
-  }
+  async findOne(@Res() res: Response, @Param('id') id: productId): Promise<Response> {
+    try {
+      const product: Product = await this.productService.findProductDetail(id);
+      return this.response.responseWithData(res, 200, product)
+    } catch (error) {
+      if (error instanceof HttpException) {
+        this.response.error(res, error.getStatus(), error.message);
+      } else {
+        this.response.error(res, HttpStatus.INTERNAL_SERVER_ERROR, error.message);
+      }
+    }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
-    return this.productService.update(+id, updateProductDto);
   }
+  @Private()
+  @Post()
+  async create(@Body() createProductDto: CreateProductDto, @Res() res: Response, @Req() req: Request & { user: { _id: string } }): Promise<Response> {
+    try {
+      const userId = req.user._id;
+      const product = await this.productService.createProduct(createProductDto, userId);
+      console.log(product)
+      return this.response.created(res, product)
+    } catch (error) {
+      if (error instanceof HttpException) {
+        this.response.error(res, error.getStatus(), error.message);
+      } else {
+        this.response.error(res, HttpStatus.INTERNAL_SERVER_ERROR, error.message);
+      }
+    }
 
+  }
+  @Private()
+  @Put(':id')
+  update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto, @Res() res: Response): Promise<Response> {
+    try {
+      const productAfterPut = this.productService.updateProduct(id, updateProductDto)
+      return this.response.responseWithData(res, 200, productAfterPut)
+    } catch (error) {
+      if (error instanceof HttpException) {
+        this.response.error(res, error.getStatus(), error.message);
+      } else {
+        this.response.error(res, HttpStatus.INTERNAL_SERVER_ERROR, error.message);
+      }
+    }
+  }
+  @Private()
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.productService.remove(+id);
+  remove(@Param('id') id: productId, @Res() res: Response): Promise<Response> {
+    try {
+      const delProduct = this.productService.deleteProduct(id);
+      return this.response.ok(res, delProduct)
+    } catch (error) {
+      if (error instanceof HttpException) {
+        this.response.error(res, error.getStatus(), error.message);
+      } else {
+        this.response.error(res, HttpStatus.INTERNAL_SERVER_ERROR, error.message);
+      }
+    }
   }
 }

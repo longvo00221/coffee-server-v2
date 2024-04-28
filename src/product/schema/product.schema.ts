@@ -1,6 +1,7 @@
 import { Prop, SchemaFactory } from '@nestjs/mongoose';
-import { User } from '../../schemas/user.schema';
-import { Topping } from '../../schemas/topping.schema';
+import { User } from '../../user/schemas/user.schema';
+import { Topping } from '../../topping/schemas/topping.schema';
+import mongoose from 'mongoose';
 
 
 export class Review {
@@ -10,7 +11,7 @@ export class Review {
     @Prop({ required: true })
     comment: string;
 
-    @Prop({ ref: 'User', required: true })
+    @Prop({type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true })
     user: User
 }
 
@@ -41,9 +42,9 @@ export class Product {
     countInStock: number;
 
     @Prop({ ref: 'Topping' })
-    toppings:Topping[];
+    toppings?:Topping[];
 
     @Prop()
-    reviews: Review[];
+    reviews?: Review[];
 }
 export const ProductSchema = SchemaFactory.createForClass(Product)

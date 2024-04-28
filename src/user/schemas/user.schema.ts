@@ -3,6 +3,7 @@ import { hash, compare } from 'bcryptjs';
 import * as validator from 'validator';
 import * as crypto from 'crypto';
 import * as jwt from 'jsonwebtoken';
+import { SchemaFactory } from '@nestjs/mongoose';
 
 @plugin(require('mongoose-unique-validator'))
 @pre<User>('save', async function (this: User, next) {
@@ -72,3 +73,5 @@ export class User {
         return resetToken;
     }
 }
+
+export const UserSchema = SchemaFactory.createForClass(User)
